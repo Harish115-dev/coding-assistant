@@ -143,3 +143,21 @@ def config_show() -> None:
 
     console.print(f"daily_budget_cap: {get_daily_budget_cap()}")
     console.print(f"provider: {get_provider()}")
+@app.command()
+def commands() -> None:
+    """List all available commands."""
+    from rich.table import Table
+
+    table = Table(title="coding-assistant commands")
+    table.add_column("Command", style="cyan")
+    table.add_column("Description")
+
+    table.add_row("chat \"<message>\"", "Chat with the assistant about your code")
+    table.add_row("explain \"<error>\"", "Explain an error message in plain terms")
+    table.add_row("fix <file>", "Debug and suggest a fix for a file")
+    table.add_row("version", "Show the installed version")
+    table.add_row("commands", "List all available commands")
+    table.add_row("config show", "Show current preferences")
+    table.add_row("config set", "Update preferences (--provider, --daily-budget-cap)")
+
+    console.print(table)
