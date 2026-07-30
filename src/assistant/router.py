@@ -1,7 +1,7 @@
 import socket
 from assistant.offline_llm import is_ollama_running
 from assistant.tokens import get_today_usage
-from assistant.config import get_daily_budget_cap
+from assistant.config import get_daily_budget_cap,get_provider
 
 
 
@@ -23,7 +23,7 @@ def choose_mode() -> str:
         )
 
     if is_online():
-        return "online"  
+        return get_provider()
     if is_ollama_running():
         return "offline" 
     

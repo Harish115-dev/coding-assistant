@@ -43,7 +43,7 @@ assistant config set --mode-preference offline_first
 - [x] Phase 0 — repo, CLI skeleton, config
 - [x] Phase 1 — online MVP (`chat`, `fix`, `explain`)
 - [x] Phase 2 — offline mode + router
-- [] Phase 3 — token budgeting
+- [x] Phase 3 — token budgeting
 - [ ] Phase 4 — codebase RAG (ChromaDB)
 - [ ] Phase 5 — confidence-based escalation
 - [ ] Phase 6 — packaging + polish

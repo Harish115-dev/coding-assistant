@@ -47,3 +47,30 @@ def set_daily_budget_cap(cap: int) -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     with open(PREFS_FILE, "w") as f:
         json.dump(prefs, f, indent=2)
+
+def get_provider() -> str:
+    if not PREFS_FILE.exists():
+        return "groq"
+    try:
+        with open(PREFS_FILE, "r") as f:
+            prefs = json.load(f)
+        return prefs.get("provider", "groq")
+    except (json.JSONDecodeError, OSError):
+        return "groq"
+def set_provider(provider: str) -> None:
+    valid = {"groq", "openrouter"}
+    if provider not in valid:
+        raise ValueError(f"provider must be one of {valid}, got '{provider}'")
+
+    prefs = {}
+    if PREFS_FILE.exists():
+        try:
+            with open(PREFS_FILE, "r") as f:
+                prefs = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            prefs = {}
+    prefs["provider"] = provider
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    with open(PREFS_FILE, "w") as f:
+        json.dump(prefs, f, indent=2)
