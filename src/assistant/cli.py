@@ -19,8 +19,15 @@ def chat(
     """Chat with the assistant about your code."""
     from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
+    from assistant.rag import search
     mode = choose_mode()
 
+    context_chunks = search(message)
+    context = "\n\n".join(f"# From {c['source']}\n{c['text']}" for c in context_chunks)
+    prompt = (
+        f"Here is relevant context from the user's codebase:\n\n{context}\n\n"
+        f"Question: {message}"
+    )
 
     if mode == "groq":
         from assistant.llm import ask
@@ -32,11 +39,10 @@ def chat(
     console.print(f"[dim]({mode} mode)[/dim]")
 
     with console.status("[bold green]Thinking..."):
-        reply = ask(message)
+        reply = ask(prompt)
     if mode in ("groq", "openrouter"):
-        record_usage(estimate_tokens(message) + estimate_tokens(reply))
+        record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
     console.print(reply)
-
 
 @app.command()
 def explain(
@@ -44,7 +50,11 @@ def explain(
 ) -> None:
     """Explain an error message in plain terms."""
     from assistant.router import choose_mode
-    from assistant.tokens import estimate_tokens, record_usage  
+    from assistant.tokens import estimate_tokens, record_usage
+    from assistant.rag import search
+
+    context_chunks = search(error)
+    context = "\n\n".join(f"# From {c['source']}\n{c['text']}" for c in context_chunks)
 
     mode = choose_mode()
     if mode == "groq":
@@ -57,6 +67,7 @@ def explain(
     prompt = (
         "Explain this error message in plain, simple terms for a developer. "
         "Say what likely caused it and how to fix it. Be concise.\n\n"
+        f"Relevant codebase context:\n{context}\n\n"
         f"Error:\n{error}"
     )
 
@@ -65,12 +76,11 @@ def explain(
     with console.status("[bold green]Thinking..."):
         reply = ask(prompt)
 
-    if mode in ("groq", "openrouter"): 
+    if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
     console.print(reply)
-
-
+    
 
 @app.command()
 def fix(
@@ -79,8 +89,8 @@ def fix(
     """Debug and suggest a fix for a file."""
     from pathlib import Path
     from assistant.router import choose_mode
-    from assistant.tokens import estimate_tokens, record_usage  
-
+    from assistant.tokens import estimate_tokens, record_usage
+    from assistant.rag import search
 
     path = Path(file)
     if not path.exists():
@@ -88,6 +98,9 @@ def fix(
         raise typer.Exit(code=1)
 
     code = path.read_text()
+
+    context_chunks = search(code)
+    context = "\n\n".join(f"# From {c['source']}\n{c['text']}" for c in context_chunks)
 
     mode = choose_mode()
 
@@ -101,6 +114,7 @@ def fix(
     prompt = (
         "Here is a code file. Find any bugs and suggest a fix. "
         "Be concise and show the corrected code.\n\n"
+        f"Relevant codebase context:\n{context}\n\n"
         f"File: {file}\n```\n{code}\n```"
     )
 
@@ -108,8 +122,8 @@ def fix(
 
     with console.status("[bold green]Thinking..."):
         reply = ask(prompt)
-    
-    if mode in ("groq", "openrouter"): 
+
+    if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
     console.print(reply)
@@ -161,3 +175,16 @@ def commands() -> None:
     table.add_row("config set", "Update preferences (--provider, --daily-budget-cap)")
 
     console.print(table)
+
+
+@app.command()
+def index(
+    directory: str = typer.Argument(".", help="Directory to index (defaults to current folder)."),
+) -> None:
+    """Index a codebase so chat/fix/explain can use it as context."""
+    from assistant.rag import index_directory
+
+    with console.status("[bold green]Indexing codebase..."):
+        count = index_directory(directory)
+
+    console.print(f"[green]Indexed {count} chunks from {directory}[/green]")
