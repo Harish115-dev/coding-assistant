@@ -16,3 +16,34 @@ def get_groq_client() -> Groq:
         )
     return Groq(api_key=GROQ_API_KEY)
 
+
+import json
+
+PREFS_FILE = CONFIG_DIR / "preferences.json"
+DEFAULT_DAILY_BUDGET_CAP = 50000
+
+
+def get_daily_budget_cap() -> int:
+    if not PREFS_FILE.exists():
+        return DEFAULT_DAILY_BUDGET_CAP
+    try:
+        with open(PREFS_FILE, "r") as f:
+            prefs = json.load(f)
+        return prefs.get("daily_budget_cap", DEFAULT_DAILY_BUDGET_CAP)
+    except (json.JSONDecodeError, OSError):
+        return DEFAULT_DAILY_BUDGET_CAP
+
+
+def set_daily_budget_cap(cap: int) -> None:
+    prefs = {}
+    if PREFS_FILE.exists():
+        try:
+            with open(PREFS_FILE, "r") as f:
+                prefs = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            prefs = {}
+    prefs["daily_budget_cap"] = cap
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    with open(PREFS_FILE, "w") as f:
+        json.dump(prefs, f, indent=2)
