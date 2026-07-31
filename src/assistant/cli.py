@@ -1,5 +1,6 @@
 import typer
 from rich.console import Console
+from rich.markdown import Markdown
 
 console = Console()
 app = typer.Typer()
@@ -46,7 +47,7 @@ def chat(
     if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
-    console.print(reply)
+    console.print(Markdown(reply))
 
 
 @app.command()
@@ -84,7 +85,7 @@ def explain(
     if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
-    console.print(reply)
+    console.print(Markdown(reply))
 
 
 @app.command()
@@ -131,7 +132,7 @@ def fix(
     if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
-    console.print(reply)
+    console.print(Markdown(reply))
 
 
 
