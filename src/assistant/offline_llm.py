@@ -12,15 +12,21 @@ def is_ollama_running() -> bool:
 
 MODEL = "qwen2.5-coder:1.5b"
 
-def ask(message:str)->str:
-    response=requests.post(
-        f"{OLLAMA_URL}/api/chat",
-        json={
-            "model": MODEL,
-            "messages": [{"role": "user", "content": message}],
-            "stream": False,
-        },
-        timeout=120,
-    )
-    response.raise_for_status()
-    return response.json()["message"]["content"]
+def ask(message: str) -> str:
+    try:
+        response = requests.post(
+            f"{OLLAMA_URL}/api/chat",
+            json={
+                "model": MODEL,
+                "messages": [{"role": "user", "content": message}],
+                "stream": False,
+            },
+            timeout=120,
+        )
+        response.raise_for_status()
+        return response.json()["message"]["content"]
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            "Couldn't reach Ollama at localhost:11434. Make sure Ollama is installed "
+            "and running (try 'ollama serve'), or connect to the internet to use online mode instead."
+        )
