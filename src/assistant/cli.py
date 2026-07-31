@@ -15,11 +15,13 @@ def version() -> None:
 
 @app.command()
 def chat(
-    message:str =typer.Argument(...,help="What you want to ask the assistant."),)->None:
+    message: str = typer.Argument(..., help="What you want to ask the assistant."),
+) -> None:
     """Chat with the assistant about your code."""
     from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
     from assistant.rag import search
+
     mode = choose_mode()
 
     context_chunks = search(message)
@@ -40,9 +42,12 @@ def chat(
 
     with console.status("[bold green]Thinking..."):
         reply = ask(prompt)
+
     if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
+
     console.print(reply)
+
 
 @app.command()
 def explain(
@@ -80,7 +85,7 @@ def explain(
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
     console.print(reply)
-    
+
 
 @app.command()
 def fix(

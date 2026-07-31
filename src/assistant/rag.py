@@ -63,11 +63,16 @@ def chunk_file(path: str, chunk_size: int = 50) -> list[str]:
             chunks.append(chunk)
     return chunks
 
-def index_directory(directory:str=".")->int:
-    root=Path(directory)
-    py_files=list(root.rglob("*.py"))
+def index_directory(directory: str = ".") -> int:
+    root = Path(directory)
+    extensions = ["*.py", "*.md"]
+
+    all_files = []
+    for ext in extensions:
+        all_files.extend(root.rglob(ext))
+
     total_chunks = 0
-    for file_path in py_files:
+    for file_path in all_files:
         if ".venv" in file_path.parts or "__pycache__" in file_path.parts:
             continue
 
