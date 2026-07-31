@@ -65,7 +65,8 @@ def chunk_file(path: str, chunk_size: int = 50) -> list[str]:
 
 def index_directory(directory: str = ".") -> int:
     root = Path(directory)
-    extensions = ["*.py", "*.md"]
+    extensions = ["*.py", "*.md", "*.js", "*.ts", "*.json", "*.html", "*.css"]
+    max_size_kb = 200
 
     all_files = []
     for ext in extensions:
@@ -73,7 +74,10 @@ def index_directory(directory: str = ".") -> int:
 
     total_chunks = 0
     for file_path in all_files:
-        if ".venv" in file_path.parts or "__pycache__" in file_path.parts:
+        if ".venv" in file_path.parts or "__pycache__" in file_path.parts or "node_modules" in file_path.parts:
+            continue
+
+        if file_path.stat().st_size > max_size_kb * 1024:
             continue
 
         chunks = chunk_file(str(file_path))
