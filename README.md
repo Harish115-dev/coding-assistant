@@ -47,6 +47,43 @@ assistant chat "why does this function throw a KeyError?"
 The assistant automatically falls back to your local Ollama model when
 there's no internet connection or your daily token budget is used up.
 
+## Using it globally, across any project
+
+By default, `pip install -e .` only makes the `assistant` command work inside
+this repo's own virtual environment. To use it from *any* project on your
+machine, install it globally with [pipx](https://pypa.github.io/pipx/) instead:
+
+```bash
+pip install pipx
+cd coding-assistant
+pipx install .
+```
+
+After that, `assistant` works from any folder, in any terminal, without
+activating this project's `.venv`:
+
+```bash
+cd ~/projects/my-frontend-app
+assistant index
+assistant chat "how should I structure my components folder?"
+
+cd ~/projects/my-backend-api
+assistant index
+assistant chat "why is this endpoint returning 500?"
+```
+
+Each project you run `assistant index` in gets its own isolated codebase
+index — working across multiple projects never mixes their code together.
+Your API keys and preferences (`~/.coding-assistant/`) are shared globally
+across all projects, so you only need to set those up once.
+
+If you ever update the assistant's own code, refresh the global install with:
+
+```bash
+cd coding-assistant
+pipx install . --force
+```
+
 ## Codebase-aware answers (RAG)
 
 Index your project so the assistant can pull in relevant context automatically:
@@ -122,6 +159,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 - [x] Phase 4 — codebase RAG (ChromaDB), multi-extension indexing
 - [x] Multi-provider support — Groq + OpenRouter, switchable via config
 - [x] Safe file-apply for `fix` — diff preview, backup, truncation guard
+- [x] Per-project RAG isolation — each project gets its own codebase index
 - [x] Test suite (pytest)
 - [ ] Phase 7 — VS Code extension (stretch goal)
 
