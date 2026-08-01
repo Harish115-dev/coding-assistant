@@ -1,6 +1,10 @@
 import os
 from dotenv import load_dotenv
 import requests
+from pathlib import Path
+
+load_dotenv()
+load_dotenv(Path.home() / ".coding-assistant" / ".env")
 
 
 load_dotenv()

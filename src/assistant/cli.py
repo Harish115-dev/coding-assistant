@@ -222,7 +222,11 @@ def commands() -> None:
 
     table.add_row("chat \"<message>\"", "Chat with the assistant about your code")
     table.add_row("explain \"<error>\"", "Explain an error message in plain terms")
-    table.add_row("fix <file>", "Debug and suggest a fix for a file")
+    table.add_row("explain -f <file>", "Scan a file for bugs (read-only, no changes made)")
+    table.add_row("explain \"<error>\" -f <file>", "Correlate an error with a specific file")
+    table.add_row("fix <file>", "Find bugs, show a diff, and optionally apply the fix")
+    table.add_row("fix <file> -m \"<instructions>\"", "Same as fix, with extra guidance for the model")
+    table.add_row("index [directory]", "Index a codebase for RAG (defaults to current folder)")
     table.add_row("version", "Show the installed version")
     table.add_row("commands", "List all available commands")
     table.add_row("config show", "Show current preferences")

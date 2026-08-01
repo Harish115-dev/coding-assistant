@@ -5,9 +5,11 @@ from groq import Groq
 
 CONFIG_DIR = Path.home() / ".coding-assistant"
 
-load_dotenv()
+load_dotenv()  # local .env, if present (useful during development)
+load_dotenv(CONFIG_DIR / ".env")  # global .env, for when installed globally via pipx
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 
 def get_groq_client() -> Groq:
     if not GROQ_API_KEY:
@@ -48,6 +50,7 @@ def set_daily_budget_cap(cap: int) -> None:
     with open(PREFS_FILE, "w") as f:
         json.dump(prefs, f, indent=2)
 
+
 def get_provider() -> str:
     if not PREFS_FILE.exists():
         return "groq"
@@ -57,6 +60,8 @@ def get_provider() -> str:
         return prefs.get("provider", "groq")
     except (json.JSONDecodeError, OSError):
         return "groq"
+
+
 def set_provider(provider: str) -> None:
     valid = {"groq", "openrouter"}
     if provider not in valid:
