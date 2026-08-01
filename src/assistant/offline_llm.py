@@ -12,16 +12,16 @@ def is_ollama_running() -> bool:
 
 MODEL = "qwen2.5-coder:1.5b"
 
-def ask(message: str) -> str:
+def ask(message: str, max_tokens: int = 500) -> str:
     try:
         response = requests.post(
             f"{OLLAMA_URL}/api/chat",
             json={
-            "model": MODEL,
-            "messages": [{"role": "user", "content": message}],
-            "stream": False,
-            "options": {"num_predict": 500},
-             },
+                "model": MODEL,
+                "messages": [{"role": "user", "content": message}],
+                "stream": False,
+                "options": {"num_predict": max_tokens},
+            },
             timeout=120,
         )
         response.raise_for_status()

@@ -174,7 +174,7 @@ def fix(
     console.print(f"[dim]({mode} mode)[/dim]")
 
     with console.status("[bold green]Thinking..."):
-        reply = ask(prompt)
+        reply = ask(prompt, max_tokens=4000)
 
     if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))

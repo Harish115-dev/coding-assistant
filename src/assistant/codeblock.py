@@ -46,6 +46,7 @@ def offer_to_apply(path: Path, reply: str) -> None:
 
     diff = make_diff(original_code, fixed_code, str(path))
     if not diff.strip():
+        console.print("[dim]Suggested code is identical to the current file — nothing to apply.[/dim]")
         return
 
     console.print("\n[bold]Proposed changes:[/bold]")
