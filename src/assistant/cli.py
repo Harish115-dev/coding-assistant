@@ -13,6 +13,8 @@ def version() -> None:
     """Show the installed version."""
     console.print("coding-assistant v0.1.0")
 
+#chat command
+
 
 @app.command()
 def chat(
@@ -49,6 +51,7 @@ def chat(
 
     console.print(Markdown(reply))
 
+#explain command
 
 @app.command()
 def explain(
@@ -87,7 +90,7 @@ def explain(
 
     console.print(Markdown(reply))
 
-
+#fix command
 @app.command()
 def fix(
     file: str = typer.Argument(..., help="Path to the file with the bug."),
@@ -97,6 +100,8 @@ def fix(
     from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
     from assistant.rag import search
+    from assistant.codeblock import extract_code
+    import shutil
 
     path = Path(file)
     if not path.exists():
@@ -133,9 +138,24 @@ def fix(
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
     console.print(Markdown(reply))
+    fixed_code = extract_code(reply)
+    if fixed_code is None:
+        console.print("[yellow]No code block found in the response — nothing to apply.[/yellow]")
+        return
+
+    apply = typer.confirm("\nApply this fix to the file?")
+    if not apply:
+        console.print("[dim]No changes made.[/dim]")
+        return
+
+    backup_path = path.with_suffix(path.suffix + ".bak")
+    shutil.copy(path, backup_path)
+    path.write_text(fixed_code)
+
+    console.print(f"[green]Fix applied.[/green] Original backed up to {backup_path}")
 
 
-
+#config command
 
 config_app = typer.Typer(help="View or update assistant preferences.")
 app.add_typer(config_app, name="config")
