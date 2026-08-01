@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 #import senetnce transformer
 from sentence_transformers import SentenceTransformer
+os.environ["HF_HUB_OFFLINE"] = "1"
 _model = None
 
 #initiate model
