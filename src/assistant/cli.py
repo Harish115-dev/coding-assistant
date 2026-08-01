@@ -15,17 +15,14 @@ def version() -> None:
 
 #chat command
 
-
 @app.command()
 def chat(
     message: str = typer.Argument(..., help="What you want to ask the assistant."),
 ) -> None:
     """Chat with the assistant about your code."""
-    from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
     from assistant.rag import search
-
-    mode = choose_mode()
+    from assistant.dispatch import get_reply
 
     context_chunks = search(message)
     context = "\n\n".join(f"# From {c['source']}\n{c['text']}" for c in context_chunks)
@@ -36,23 +33,12 @@ def chat(
         "unless the question genuinely requires more detail."
     )
 
-    if mode == "groq":
-        from assistant.llm import ask
-    elif mode == "openrouter":
-        from assistant.openrouter_llm import ask
-    else:
-        from assistant.offline_llm import ask
-
-    console.print(f"[dim]({mode} mode)[/dim]")
-
-    with console.status("[bold green]Thinking..."):
-        reply = ask(prompt)
+    reply, mode = get_reply(prompt)
 
     if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
     console.print(Markdown(reply))
-
 #explain command
 
 @app.command()
@@ -61,9 +47,9 @@ def explain(
     file: str = typer.Option(None, "--file", "-f", help="Scan this file for bugs instead of/alongside an error."),
 ) -> None:
     """Explain an error message in plain terms."""
-    from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
     from assistant.rag import search
+    from assistant.dispatch import get_reply
 
     if not error and not file:
         console.print("[red]Provide an error message, a --file to scan, or both.[/red]")
@@ -81,14 +67,6 @@ def explain(
     search_query = error or file_code
     context_chunks = search(search_query)
     context = "\n\n".join(f"# From {c['source']}\n{c['text']}" for c in context_chunks)
-
-    mode = choose_mode()
-    if mode == "groq":
-        from assistant.llm import ask
-    elif mode == "openrouter":
-        from assistant.openrouter_llm import ask
-    else:
-        from assistant.offline_llm import ask
 
     if file and error:
         prompt = (
@@ -117,10 +95,7 @@ def explain(
             f"Error:\n{error}"
         )
 
-    console.print(f"[dim]({mode} mode)[/dim]")
-
-    with console.status("[bold green]Thinking..."):
-        reply = ask(prompt)
+    reply, mode = get_reply(prompt)
 
     if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
@@ -135,10 +110,10 @@ def fix(
 ) -> None:
     """Debug and suggest a fix for a file."""
     from pathlib import Path
-    from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
     from assistant.rag import search
     from assistant.codeblock import offer_to_apply
+    from assistant.dispatch import get_reply
 
     path = Path(file)
     if not path.exists():
@@ -149,15 +124,6 @@ def fix(
 
     context_chunks = search(code)
     context = "\n\n".join(f"# From {c['source']}\n{c['text']}" for c in context_chunks)
-
-    mode = choose_mode()
-
-    if mode == "groq":
-        from assistant.llm import ask
-    elif mode == "openrouter":
-        from assistant.openrouter_llm import ask
-    else:
-        from assistant.offline_llm import ask
 
     extra_instruction = f"\nAdditional instructions from the user: {message}" if message else ""
 
@@ -171,10 +137,7 @@ def fix(
         f"File: {file}\n```\n{code}\n```"
     )
 
-    console.print(f"[dim]({mode} mode)[/dim]")
-
-    with console.status("[bold green]Thinking..."):
-        reply = ask(prompt, max_tokens=4000)
+    reply, mode = get_reply(prompt, max_tokens=4000)
 
     if mode in ("groq", "openrouter"):
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
@@ -182,7 +145,7 @@ def fix(
     console.print(Markdown(reply))
 
     offer_to_apply(path, reply)
-
+    
 #config command
 
 config_app = typer.Typer(help="View or update assistant preferences.")
