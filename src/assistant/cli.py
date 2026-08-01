@@ -31,7 +31,9 @@ def chat(
     context = "\n\n".join(f"# From {c['source']}\n{c['text']}" for c in context_chunks)
     prompt = (
         f"Here is relevant context from the user's codebase:\n\n{context}\n\n"
-        f"Question: {message}"
+        f"Question: {message}\n\n"
+        "Answer concisely — a few sentences or a short example is usually enough, "
+        "unless the question genuinely requires more detail."
     )
 
     if mode == "groq":
@@ -55,14 +57,29 @@ def chat(
 
 @app.command()
 def explain(
-    error: str = typer.Argument(..., help="Paste the error message to explain."),
+    error: str = typer.Argument(None, help="Paste the error message to explain."),
+    file: str = typer.Option(None, "--file", "-f", help="Scan this file for bugs instead of/alongside an error."),
 ) -> None:
     """Explain an error message in plain terms."""
     from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
     from assistant.rag import search
 
-    context_chunks = search(error)
+    if not error and not file:
+        console.print("[red]Provide an error message, a --file to scan, or both.[/red]")
+        raise typer.Exit(code=1)
+
+    file_code = None
+    if file:
+        from pathlib import Path
+        path = Path(file)
+        if not path.exists():
+            console.print(f"[red]File not found:[/red] {file}")
+            raise typer.Exit(code=1)
+        file_code = path.read_text()
+
+    search_query = error or file_code
+    context_chunks = search(search_query)
     context = "\n\n".join(f"# From {c['source']}\n{c['text']}" for c in context_chunks)
 
     mode = choose_mode()
@@ -73,12 +90,32 @@ def explain(
     else:
         from assistant.offline_llm import ask
 
-    prompt = (
-        "Explain this error message in plain, simple terms for a developer. "
-        "Say what likely caused it and how to fix it. Be concise.\n\n"
-        f"Relevant codebase context:\n{context}\n\n"
-        f"Error:\n{error}"
-    )
+    if file and error:
+        prompt = (
+            "Here is a code file and an error message. In 3-4 sentences, explain what's "
+            "causing the error and point to the specific line responsible. "
+            "Do not rewrite the file — just explain concisely.\n\n"
+            f"Relevant codebase context:\n{context}\n\n"
+            f"File: {file}\n```\n{file_code}\n```\n\n"
+            f"Error:\n{error}"
+        )
+    elif file:
+        prompt = (
+            "Here is a code file. Identify UP TO 5 real bugs, issues, or risky patterns "
+            "that actually exist in the specific code shown below — do not invent issues "
+            "or reference line numbers beyond what's actually in this file. "
+            "For each one, give ONLY: the line number, a short issue name (3-5 words), "
+            "and a one-sentence fix. No lengthy explanations.\n\n"
+            f"Relevant codebase context:\n{context}\n\n"
+            f"File: {file}\n```\n{file_code}\n```"
+        )
+    else:
+        prompt = (
+            "Explain this error message in plain, simple terms for a developer. "
+            "Keep it to 3-4 sentences: what caused it, and how to fix it. No lengthy explanation.\n\n"
+            f"Relevant codebase context:\n{context}\n\n"
+            f"Error:\n{error}"
+        )
 
     console.print(f"[dim]({mode} mode)[/dim]")
 
@@ -101,8 +138,7 @@ def fix(
     from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
     from assistant.rag import search
-    from assistant.codeblock import extract_code, make_diff
-    import shutil
+    from assistant.codeblock import offer_to_apply
 
     path = Path(file)
     if not path.exists():
@@ -145,37 +181,7 @@ def fix(
 
     console.print(Markdown(reply))
 
-    fixed_code = extract_code(reply)
-    if fixed_code is None:
-        console.print("[yellow]No code block found in the response — nothing to apply.[/yellow]")
-        return
-
-    length_ratio = len(fixed_code) / max(len(code), 1)
-    if length_ratio < 0.5:
-        console.print(
-            f"[bold red]Warning:[/bold red] the suggested fix is {int(length_ratio * 100)}% "
-            "the length of your original file. This often means the model truncated or "
-            "used placeholders instead of returning the full file."
-        )
-
-    diff = make_diff(code, fixed_code, file)
-    if not diff.strip():
-        console.print("[dim]No actual changes detected between original and suggested code.[/dim]")
-        return
-
-    console.print("\n[bold]Proposed changes:[/bold]")
-    console.print(Markdown(f"```diff\n{diff}\n```"))
-
-    apply = typer.confirm("\nApply this fix to the file?")
-    if not apply:
-        console.print("[dim]No changes made.[/dim]")
-        return
-
-    backup_path = path.with_suffix(path.suffix + ".bak")
-    shutil.copy(path, backup_path)
-    path.write_text(fixed_code)
-
-    console.print(f"[green]Fix applied.[/green] Original backed up to {backup_path}")
+    offer_to_apply(path, reply)
 
 #config command
 

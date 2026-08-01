@@ -17,10 +17,11 @@ def ask(message: str) -> str:
         response = requests.post(
             f"{OLLAMA_URL}/api/chat",
             json={
-                "model": MODEL,
-                "messages": [{"role": "user", "content": message}],
-                "stream": False,
-            },
+            "model": MODEL,
+            "messages": [{"role": "user", "content": message}],
+            "stream": False,
+            "options": {"num_predict": 500},
+             },
             timeout=120,
         )
         response.raise_for_status()

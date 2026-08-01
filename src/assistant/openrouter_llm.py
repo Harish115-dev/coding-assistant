@@ -19,9 +19,10 @@ def ask(message: str) -> str:
         "https://openrouter.ai/api/v1/chat/completions",
         headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
         json={
-            "model": MODEL,
-            "messages": [{"role": "user", "content": message}],
-        },
+    "model": MODEL,
+    "messages": [{"role": "user", "content": message}],
+    "max_tokens": 500,
+},
         timeout=60,
     )
     response.raise_for_status()
