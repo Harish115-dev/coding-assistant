@@ -1,9 +1,11 @@
+import hashlib
+import os
 from pathlib import Path
 #import senetnce transformer
 from sentence_transformers import SentenceTransformer
 _model = None
 
-
+#initiate model
 def get_model() -> SentenceTransformer:
     global _model
     if _model is None:
@@ -22,14 +24,15 @@ import chromadb
 
 CHROMA_DIR = Path.home() / ".coding-assistant" / "chroma"
 
-
-def get_collection():
+#initiate db
+def get_collection(directory: str = "."):
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-    return client.get_or_create_collection("codebase")
+    project_id = get_project_id(directory)
+    return client.get_or_create_collection(project_id)
 
-
-def add_chunk(chunk_id: str, text: str, source_file: str) -> None:
-    collection = get_collection()
+#chunking function
+def add_chunk(chunk_id: str, text: str, source_file: str, directory: str = ".") -> None:
+    collection = get_collection(directory)
     embedding = embed(text)
     collection.upsert(
         ids=[chunk_id],
@@ -38,8 +41,9 @@ def add_chunk(chunk_id: str, text: str, source_file: str) -> None:
         metadatas=[{"source": source_file}],
     )
 
-def search(query: str, n_results: int = 3) -> list[dict]:
-    collection = get_collection()
+
+def search(query: str, n_results: int = 3, directory: str = ".") -> list[dict]:
+    collection = get_collection(directory)
     query_embedding = embed(query)
 
     results = collection.query(
@@ -51,7 +55,7 @@ def search(query: str, n_results: int = 3) -> list[dict]:
     for doc, meta in zip(results["documents"][0], results["metadatas"][0]):
         chunks.append({"text": doc, "source": meta["source"]})
     return chunks
-
+#chunking file
 def chunk_file(path: str, chunk_size: int = 50) -> list[str]:
     with open(path, "r", encoding="utf-8", errors="ignore") as f:
         lines = f.readlines()
@@ -63,6 +67,15 @@ def chunk_file(path: str, chunk_size: int = 50) -> list[str]:
             chunks.append(chunk)
     return chunks
 
+#get project id
+
+def get_project_id(directory: str = ".") -> str:
+    abs_path = os.path.abspath(directory)
+    hash_suffix = hashlib.md5(abs_path.encode()).hexdigest()[:10]
+    return f"project_{hash_suffix}"
+
+
+#read all program files and chunk it
 def index_directory(directory: str = ".") -> int:
     root = Path(directory)
     extensions = ["*.py", "*.md", "*.js", "*.ts", "*.json", "*.html", "*.css"]
@@ -83,7 +96,7 @@ def index_directory(directory: str = ".") -> int:
         chunks = chunk_file(str(file_path))
         for i, chunk in enumerate(chunks):
             chunk_id = f"{file_path}:{i}"
-            add_chunk(chunk_id, chunk, str(file_path))
+            add_chunk(chunk_id, chunk, str(file_path), directory)
             total_chunks += 1
 
     return total_chunks
