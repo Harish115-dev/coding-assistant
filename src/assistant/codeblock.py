@@ -9,9 +9,8 @@ from rich.markdown import Markdown
 console = Console()
 
 # extracting code
-
 def extract_code(text: str) -> str | None:
-    matches = re.findall(r"```(?:python)?\n(.*?)```", text, re.DOTALL)
+    matches = re.findall(r"```(?:\w+)?\n(.*?)```", text, re.DOTALL)
     if not matches:
         return None
     return max(matches, key=len).strip()
