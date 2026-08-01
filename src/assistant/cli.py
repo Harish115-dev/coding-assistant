@@ -197,11 +197,18 @@ def config_set(
     from assistant.config import set_daily_budget_cap, set_provider
 
     if daily_budget_cap is not None:
+        if daily_budget_cap <= 0:
+            console.print("[red]daily_budget_cap must be a positive integer.[/red]")
+            raise typer.Exit(code=1)
         set_daily_budget_cap(daily_budget_cap)
         console.print(f"[green]daily_budget_cap set to {daily_budget_cap}[/green]")
 
     if provider is not None:
-        set_provider(provider)
+        try:
+            set_provider(provider)
+        except ValueError as e:
+            console.print(f"[red]{e}[/red]")
+            raise typer.Exit(code=1)
         console.print(f"[green]provider set to {provider}[/green]")
     
 @config_app.command("show")
