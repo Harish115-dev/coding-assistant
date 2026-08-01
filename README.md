@@ -8,8 +8,8 @@ code by hand. Can also apply suggested fixes directly to your files, with a
 diff preview and automatic backup before anything is overwritten.
 
 Status: **Core functionality complete and tested.** Chat, fix, explain,
-codebase indexing, multi-provider support, token budgeting, and safe
-file-apply are all working end to end.
+codebase indexing, multi-provider support, token budgeting, safe file-apply,
+and global installation are all working end to end.
 
 ## Demo
 
@@ -47,20 +47,53 @@ assistant chat "why does this function throw a KeyError?"
 The assistant automatically falls back to your local Ollama model when
 there's no internet connection or your daily token budget is used up.
 
-## Using it globally, across any project
+## Installing it: local vs. global
 
-By default, `pip install -e .` only makes the `assistant` command work inside
-this repo's own virtual environment. To use it from *any* project on your
-machine, install it globally with [pipx](https://pypa.github.io/pipx/) instead:
+There are two ways to use this tool, and it matters which one you pick.
+
+### Local only (what the Quick Start above gives you)
+
+Following the Quick Start means `assistant` **only works from inside this
+project's own folder**, and only while its `.venv` is activated. Your `.env`
+file must also live in this same folder. This is fine if you only ever want
+to use the assistant on this one project, or while developing the assistant
+itself.
+
+### Global — works from any project, any terminal
+
+To use `assistant` on other projects too (a frontend app, a backend API,
+anything else on your machine, or even no project at all) without activating
+this project's `.venv` every time, install it globally instead.
+
+**Step 1 — install pipx (one-time setup):**
 
 ```bash
 pip install pipx
+pipx ensurepath
+```
+
+Close and reopen your terminal after this — PATH changes need a fresh session.
+
+**Step 2 — install the assistant globally:**
+
+```bash
 cd coding-assistant
 pipx install .
 ```
 
-After that, `assistant` works from any folder, in any terminal, without
-activating this project's `.venv`:
+**Step 3 — set up your API keys in the global config location** (not the
+project's local `.env` — this one is read no matter which folder you're in):
+
+```bash
+notepad %USERPROFILE%\.coding-assistant\.env    # Windows
+```
+
+Notepad will offer to create the file — say yes, then paste:
+GROQ_API_KEY=your_actual_key_here
+OPENROUTER_API_KEY=your_actual_key_here
+Save and close.
+
+**Step 4 — use it anywhere:**
 
 ```bash
 cd ~/projects/my-frontend-app
@@ -72,12 +105,17 @@ assistant index
 assistant chat "why is this endpoint returning 500?"
 ```
 
+Both online and offline modes work regardless of which folder you're in —
+online just needs internet, offline just needs Ollama running in the
+background, neither depends on being inside any particular project.
+
 Each project you run `assistant index` in gets its own isolated codebase
 index — working across multiple projects never mixes their code together.
-Your API keys and preferences (`~/.coding-assistant/`) are shared globally
-across all projects, so you only need to set those up once.
+Folders you haven't indexed simply have no extra context to pull in yet;
+the assistant still answers normally, just without codebase-specific detail.
 
-If you ever update the assistant's own code, refresh the global install with:
+**Updating after code changes:** if you pull new changes or edit the
+assistant's own source, refresh the global install with:
 
 ```bash
 cd coding-assistant
@@ -123,14 +161,17 @@ Use `fix` when you actually want changes applied.
 ## Commands
 
 ```bash
-assistant chat "<message>"       # ask the assistant anything
-assistant explain "<error>"      # explain an error, or scan a file with -f
-assistant fix <file>             # find and fix bugs in a file, with diff preview
-assistant index [directory]      # index a codebase for RAG (defaults to current folder)
-assistant config show            # view current settings
-assistant config set             # update preferences (--provider, --daily-budget-cap)
-assistant version                # show installed version
-assistant commands                # list all commands
+assistant chat "<message>"                     # ask the assistant anything
+assistant explain "<error>"                    # explain an error message
+assistant explain -f <file>                    # scan a file for bugs (read-only)
+assistant explain "<error>" -f <file>          # correlate an error with a file
+assistant fix <file>                           # find bugs, show a diff, optionally apply
+assistant fix <file> -m "<instructions>"       # same, with extra guidance
+assistant index [directory]                    # index a codebase for RAG
+assistant config show                          # view current settings
+assistant config set                           # update preferences
+assistant version                              # show installed version
+assistant commands                             # list all commands
 ```
 
 ## Configuration
@@ -160,6 +201,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 - [x] Multi-provider support — Groq + OpenRouter, switchable via config
 - [x] Safe file-apply for `fix` — diff preview, backup, truncation guard
 - [x] Per-project RAG isolation — each project gets its own codebase index
+- [x] Global installation via pipx, with shared global config/keys
 - [x] Test suite (pytest)
 - [ ] Phase 7 — VS Code extension (stretch goal)
 
