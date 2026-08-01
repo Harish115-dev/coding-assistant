@@ -94,13 +94,14 @@ def explain(
 @app.command()
 def fix(
     file: str = typer.Argument(..., help="Path to the file with the bug."),
+    message: str = typer.Option(None, "--message", "-m", help="Extra instructions for the fix."),
 ) -> None:
     """Debug and suggest a fix for a file."""
     from pathlib import Path
     from assistant.router import choose_mode
     from assistant.tokens import estimate_tokens, record_usage
     from assistant.rag import search
-    from assistant.codeblock import extract_code
+    from assistant.codeblock import extract_code, make_diff
     import shutil
 
     path = Path(file)
@@ -122,9 +123,14 @@ def fix(
     else:
         from assistant.offline_llm import ask
 
+    extra_instruction = f"\nAdditional instructions from the user: {message}" if message else ""
+
     prompt = (
         "Here is a code file. Find any bugs and suggest a fix. "
-        "Be concise and show the corrected code.\n\n"
+        "Return the COMPLETE corrected file — do not use placeholders like '# ...' or "
+        "'# rest unchanged' to skip any part of the file, even if unchanged. "
+        "The full file must be included in your response."
+        f"{extra_instruction}\n\n"
         f"Relevant codebase context:\n{context}\n\n"
         f"File: {file}\n```\n{code}\n```"
     )
@@ -138,10 +144,27 @@ def fix(
         record_usage(estimate_tokens(prompt) + estimate_tokens(reply))
 
     console.print(Markdown(reply))
+
     fixed_code = extract_code(reply)
     if fixed_code is None:
         console.print("[yellow]No code block found in the response — nothing to apply.[/yellow]")
         return
+
+    length_ratio = len(fixed_code) / max(len(code), 1)
+    if length_ratio < 0.5:
+        console.print(
+            f"[bold red]Warning:[/bold red] the suggested fix is {int(length_ratio * 100)}% "
+            "the length of your original file. This often means the model truncated or "
+            "used placeholders instead of returning the full file."
+        )
+
+    diff = make_diff(code, fixed_code, file)
+    if not diff.strip():
+        console.print("[dim]No actual changes detected between original and suggested code.[/dim]")
+        return
+
+    console.print("\n[bold]Proposed changes:[/bold]")
+    console.print(Markdown(f"```diff\n{diff}\n```"))
 
     apply = typer.confirm("\nApply this fix to the file?")
     if not apply:
@@ -153,7 +176,6 @@ def fix(
     path.write_text(fixed_code)
 
     console.print(f"[green]Fix applied.[/green] Original backed up to {backup_path}")
-
 
 #config command
 

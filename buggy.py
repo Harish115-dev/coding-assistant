@@ -50,9 +50,8 @@ class Library:
         
         if len(results) > 0:
             print(f"\nBooks by {author_name}:")
-            for i in range(1, len(results) + 1):
-                # Intent: Print numbered list like "1. Book Title"
-                print(f"{i}. {results[i]}")
+            for i, title in enumerate(results, start=1):
+                print(f"{i}. {title}")
         else:
             print(f"No books found by author: {author_name}")
 
