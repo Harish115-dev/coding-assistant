@@ -10,7 +10,7 @@ load_dotenv(Path.home() / ".coding-assistant" / ".env")
 load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-MODEL = "openrouter/free"
+MODEL = "meta-llama/llama-3.3-70b-instruct:free"
 
 def ask(message: str, max_tokens: int = 500) -> str:
     if not OPENROUTER_API_KEY:

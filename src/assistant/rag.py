@@ -2,7 +2,12 @@ import hashlib
 import os
 from pathlib import Path
 #import senetnce transformer
+os.environ["HF_HUB_OFFLINE"] = "1"
 from sentence_transformers import SentenceTransformer
+
+import os
+
+
 _model = None
 
 #initiate model
